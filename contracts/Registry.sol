@@ -10,12 +10,38 @@ contract Registry {
 
   mapping(address => ufixed) reputation;
 
-  function (address) internal pure (ufixed) allocators;
+  enum InfluenceDistribution {
+    AUTOCRATIC,
+    OLIGARCHIC,
+    MERITOCRATIC,
+    DEMOCRATIC
+  }
 
-  mapping(uint => bool) enabledAllocators;
+  enum DecisionResolution {
+    MAJORITY,
+    UNANIMITY
+  }
+
+  enum DecisionType {
+    DECIDE_ADD_MEMBER,
+    DECIDE_PROMOTE
+  }
+
+  enum DecisionOperation {
+    OP_ADD_MEMBER,
+    OP_PROMOTE
+  }
+
+  struct Decision {
+    string description;
+    DecisionType type;
+    DecisionOperation operation;
+  }
 
   constructor() public {
     founder = msg.sender;
+    oligarchy.push(msg.sender);
+    population.push(msg.sender);
   }
 
   /* -------------------------------- */
@@ -42,15 +68,31 @@ contract Registry {
     return 1.0;
   }
 
-  function makeDecision() public
+  /* ------------------- */
+  /* Decision resolution */
+  /* ------------------- */
 
-  // getSnapshot(method) internal
-  //  * should get the population snapshot with correct influence allocation
 
-  // addMember
-  //  * should only be result of a decision between admins
-  function addMember()
 
-  // promoteToAdmin
-  //  * should only be result of a decision
+  /* -------------- */
+  /* Decision types */
+  /* -------------- */
+
+  function decide(string description, Decision decision) public returns (address) {
+
+  }
+
+  /* ------------------------------ */
+  /* Decision resolution operations */
+  /* ------------------------------ */
+
+  event DecisionMade(string description);
+
+  function addMember(address member) internal {
+    population.push(member);
+  }
+
+  function promote(address member) internal {
+    oligarchy.push(member);
+  }
 }
