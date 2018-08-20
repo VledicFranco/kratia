@@ -1,9 +1,13 @@
 pragma solidity ^0.4.23;
 import "./Registry.sol";
 
-contract Decision {
+contract Ballot {
 
-  constructor (mapping(address => ufixed) population, Registry.Decision decision) {
+  Registry registry;
 
+  mapping(address => bool) public votes;
+
+  constructor (Registry _registry) public {
+    registry = _registry;
   }
 }

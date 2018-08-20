@@ -1,4 +1,5 @@
 pragma solidity ^0.4.23;
+import "./Ballot.sol";
 
 contract Registry {
 
@@ -8,7 +9,9 @@ contract Registry {
 
   address[] population;
 
-  mapping(address => ufixed) reputation;
+  mapping(address => uint) reputation;
+
+  mapping(address => Decision) activeDecisions;
 
   enum InfluenceDistribution {
     AUTOCRATIC,
@@ -23,19 +26,15 @@ contract Registry {
   }
 
   enum DecisionType {
-    DECIDE_ADD_MEMBER,
-    DECIDE_PROMOTE
-  }
-
-  enum DecisionOperation {
-    OP_ADD_MEMBER,
-    OP_PROMOTE
+    ADD_MEMBER,
+    PROMOTE
   }
 
   struct Decision {
     string description;
-    DecisionType type;
-    DecisionOperation operation;
+    InfluenceDistribution distribution;
+    DecisionResolution resolution;
+    DecisionType operation;
   }
 
   constructor() public {
@@ -44,55 +43,105 @@ contract Registry {
     population.push(msg.sender);
   }
 
+  /* ---------*/
+  /* Decision */
+  /* ---------*/
+
+  function decide(
+    string description,
+    InfluenceDistribution distribution,
+    DecisionResolution resolution,
+    DecisionType operation
+  ) public returns (address) {
+    Ballot ballot = new Ballot(this);
+    activeDecisions[ballot] = Decision(description, distribution, resolution, operation);
+    return address(ballot);
+  }
+
+  function resolve() public {
+
+    Decision memory decision = activeDecisions[msg.sender];
+    uint[] memory influence = new uint[](population.length);
+
+    if (decision.distribution == InfluenceDistribution.AUTOCRATIC) {
+      autocratic(influence);
+    } else if (decision.distribution == InfluenceDistribution.OLIGARCHIC) {
+      oligarchic(influence);
+    } else if (decision.distribution == InfluenceDistribution.MERITOCRATIC) {
+      meritocratic(influence);
+    } else if (decision.distribution == InfluenceDistribution.DEMOCRATIC) {
+      democratic(influence);
+    }
+
+    delete activeDecisions[msg.sender];
+  }
+
   /* -------------------------------- */
   /* Influence distribution functions */
   /* -------------------------------- */
 
-  function autocratic(address member) private pure returns (ufixed) {
-    if (member == founder) 1.0;
-    else 0.0;
-  }
-
-  function oligarchic(address member) private pure returns (ufixed) {
-    for(uint i = 0; i < oligarchy.length; i++) {
-      if (oligarchy[i] == member) return 1.0;
+  function autocratic(uint[] influence) private view {
+    for (uint i; i < population.length; i++) {
+      address member = population[i];
+      if (member == founder) influence[i] = 1;
+      else influence[i] = 0;
     }
-    return 0.0;
   }
 
-  function meritocratic(address member) private pure returns (ufixed) {
-    return reputation[member];
+  function oligarchic(uint[] influence) private view {
+    for (uint i; i < population.length; i++) {
+      address member = population[i];
+      bool isWithinOligarchy = false;
+      for(uint j = 0; i < oligarchy.length; i++) {
+        if (oligarchy[j] == member) isWithinOligarchy = true;
+      }
+      if (isWithinOligarchy) influence[i] = 1;
+      else influence[i] = 0;
+    }
   }
 
-  function democratic(address member) private pure returns (ufixed) {
-    return 1.0;
+  function meritocratic(uint[] influence) private view {
+    for (uint i; i < population.length; i++) {
+      address member = population[i];
+      influence[i] = reputation[member];
+    }
   }
 
-  /* ------------------- */
-  /* Decision resolution */
-  /* ------------------- */
+  function democratic(uint[] influence) private view {
+    for (uint i; i < population.length; i++) {
+      influence[i] = 1;
+    }
+  }
 
+  /* -------------------------- */
+  /* Binary decision resolution */
+  /* -------------------------- */
 
-
-  /* -------------- */
-  /* Decision types */
-  /* -------------- */
-
-  function decide(string description, Decision decision) public returns (address) {
-
+  function majority(uint[] influence, bool[] votes) private view returns (bool) {
+    uint yes = 0;
+    uint no = 0;
+    for (uint i; i < population.length; i++) {
+      bool vote = votes[i];
+      if (vote) {
+        yes += influence[i];
+      } else {
+        no += influence[i];
+      }
+    }
+    return yes > no;
   }
 
   /* ------------------------------ */
   /* Decision resolution operations */
   /* ------------------------------ */
 
-  event DecisionMade(string description);
+  event DecisionMade(Decision decision, string outcome);
 
-  function addMember(address member) internal {
+  function addMember(address member) private {
     population.push(member);
   }
 
-  function promote(address member) internal {
+  function promote(address member) private {
     oligarchy.push(member);
   }
 }
