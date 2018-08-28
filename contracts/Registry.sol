@@ -3,15 +3,15 @@ import "./Ballot.sol";
 
 contract Registry {
 
-  address founder;
+  address public founder;
 
-  address[] oligarchy;
+  address[] public oligarchy;
 
-  address[] population;
+  address[] public population;
 
-  mapping(address => uint) reputation;
+  mapping(address => uint) public reputation;
 
-  mapping(address => Decision) activeDecisions;
+  address[] public activeDecisions;
 
   enum InfluenceDistribution {
     AUTOCRATIC,
@@ -28,13 +28,6 @@ contract Registry {
   enum DecisionType {
     ADD_MEMBER,
     PROMOTE
-  }
-
-  struct Decision {
-    string description;
-    InfluenceDistribution distribution;
-    DecisionResolution resolution;
-    DecisionType operation;
   }
 
   constructor() public {
@@ -54,7 +47,7 @@ contract Registry {
     DecisionType operation
   ) public returns (address) {
     Ballot ballot = new Ballot(this);
-    activeDecisions[ballot] = Decision(description, distribution, resolution, operation);
+    activeDecisions.push(ballot);
     return address(ballot);
   }
 
@@ -134,8 +127,6 @@ contract Registry {
   /* ------------------------------ */
   /* Decision resolution operations */
   /* ------------------------------ */
-
-  event DecisionMade(Decision decision, string outcome);
 
   function addMember(address member) private {
     population.push(member);
